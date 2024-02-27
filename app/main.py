@@ -1,25 +1,21 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from contextlib import asynccontextmanager
+from database import create_tables,delete_tables
+from router import router as tasks_router
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    await delete_tables()
+    print("Таблицы очищены")
+    await create_tables()
+    print("Таблицы созданы")
+    yield
+    print("Off")
 
 
-class User(BaseModel):
-    username : str
-    age : int
 
 
-users = [{"username" : "Vasya","age" : 13}]   
-@app.get('/')
-async def main_page():
-    return users
 
-
-@app.get('/add_user')
-async def get_new_route(user : User):
-    print(user)
-    users.append({"username" : f"{user.username}","age" : user.age})
-    print(users)
-    return {'response':'succesfull'}
+app = FastAPI(lifespan=lifespan)
+app.include_router(tasks_router)
